@@ -3,7 +3,9 @@ package com.nl.multithreading;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.Queue;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TrafficLight {
@@ -12,9 +14,8 @@ public class TrafficLight {
     static int interval;
     static AtomicBoolean systemState = new AtomicBoolean(false);
     static final LocalTime startTime = LocalTime.now();
+    static Queue<String> queue = new ConcurrentLinkedQueue<>();
 
-    // I need two while loops
-    // the simulator test fails if remove one of them
     static Thread t = new Thread(() -> {
         while (true) {
             while (systemState.get()) {
@@ -23,7 +24,7 @@ public class TrafficLight {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
+
                 }
             }
         }
@@ -92,11 +93,28 @@ public class TrafficLight {
                 userCmd = -1; //Invalid value
             }
             switch (userCmd) {
-                case 1 -> System.out.println("Road added");
-                case 2 -> System.out.println("Road deleted");
+                case 1 -> {
+                    System.out.print("Input road name:");
+                    String roadName = sc.nextLine();
+                    if (queue.size() == roads) {
+                        System.out.println("Queue is full");
+                    } else {
+                        queue.add(roadName);
+                        System.out.println(roadName + " Added!");
+                    }
+                }
+                case 2 -> {
+                    if (queue.isEmpty()) {
+                        System.out.println("queue is empty");
+                    } else {
+                        System.out.println(queue.poll() + " deleted!");
+                    }
+                }
                 case 3 -> openSystemState();
                 case 0 -> quit();
-                default -> System.out.println("Incorrect option");
+                default -> {
+                    System.out.println("Incorrect option");
+                }
             }
             sc.nextLine();
         }
@@ -115,12 +133,14 @@ public class TrafficLight {
                 , Duration.between(startTime, LocalTime.now()).getSeconds());
         System.out.printf("! Number of roads: %d !\n", roads);
         System.out.printf("! Interval: %d !\n", interval);
+        queue.forEach(System.out::println);
         System.out.println("! Press \"Enter\" to open menu !");
     }
 
     private static void quit() {
         sc.close();
         System.out.println("Bye!");
+//        t.stop();
         System.exit(0);
     }
 }
