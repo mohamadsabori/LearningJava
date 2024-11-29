@@ -24,7 +24,7 @@ public class TrafficLight {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
-
+                    throw new RuntimeException(ex);
                 }
             }
         }
@@ -112,9 +112,7 @@ public class TrafficLight {
                 }
                 case 3 -> openSystemState();
                 case 0 -> quit();
-                default -> {
-                    System.out.println("Incorrect option");
-                }
+                default -> System.out.println("Incorrect option");
             }
             sc.nextLine();
         }
