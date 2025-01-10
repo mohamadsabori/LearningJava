@@ -3,18 +3,18 @@ package com.nl.multithreading;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalTime;
-import java.util.Queue;
-import java.util.Scanner;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TrafficLight {
+
+    private static final int QUITE = 0;
     static Scanner sc = new Scanner(System.in);
     static int roads;
     static int interval;
     static AtomicBoolean systemState = new AtomicBoolean(false);
     static final LocalTime startTime = LocalTime.now();
-    static Queue<String> queue = new ConcurrentLinkedQueue<>();
+    static List<String> queue = Collections.synchronizedList(new ArrayList<>());
 
     static Thread t = new Thread(() -> {
         while (true) {
@@ -78,44 +78,54 @@ public class TrafficLight {
     }
 
     private static void showMenu() {
-        while (true) {
+        int userCmd = -1;
+        while (userCmd != QUITE) {
             cleanOutput();
-            System.out.println("Menu:");
-            System.out.println("1. Add");
-            System.out.println("2. Delete");
-            System.out.println("3. System");
-            System.out.println("0. Quit");
-
-            int userCmd;
+            displayMenu();
             try {
                 userCmd = Integer.parseInt(sc.nextLine());
             } catch (NumberFormatException ex) {
                 userCmd = -1; //Invalid value
             }
             switch (userCmd) {
-                case 1 -> {
-                    System.out.print("Input road name:");
-                    String roadName = sc.nextLine();
-                    if (queue.size() == roads) {
-                        System.out.println("Queue is full");
-                    } else {
-                        queue.add(roadName);
-                        System.out.println(roadName + " Added!");
-                    }
-                }
-                case 2 -> {
-                    if (queue.isEmpty()) {
-                        System.out.println("queue is empty");
-                    } else {
-                        System.out.println(queue.poll() + " deleted!");
-                    }
-                }
+                case 1 -> addRoad();
+                case 2 -> deleteRoad();
                 case 3 -> openSystemState();
-                case 0 -> quit();
+                case QUITE -> quit();
                 default -> System.out.println("Incorrect option");
             }
             sc.nextLine();
         }
+        quit();
+    }
+
+    private static void deleteRoad() {
+        if (queue.isEmpty()) {
+            System.out.println("queue is empty");
+        } else {
+            System.out.println(queue.remove(0) + " deleted!");
+        }
+    }
+
+    private static void addRoad() {
+        System.out.print("Input road name:");
+        String roadName = sc.nextLine();
+        if (queue.size() == roads) {
+            System.out.println("Queue is full");
+        } else {
+            queue.add(roadName);
+            System.out.println(roadName + " Added!");
+        }
+    }
+
+    private static void displayMenu() {
+        System.out.println("""
+                Menu:
+                1. Add
+                2. Delete
+                3. System
+                0. Quit
+                """);
     }
 
     private static void openSystemState() {
@@ -127,18 +137,41 @@ public class TrafficLight {
     }
 
     private static void printSystemState() {
+        long livedSeconds = Duration.between(startTime, LocalTime.now()).getSeconds();
         System.out.printf("! %ds. have passed since system startup !\n"
-                , Duration.between(startTime, LocalTime.now()).getSeconds());
+                , livedSeconds);
         System.out.printf("! Number of roads: %d !\n", roads);
         System.out.printf("! Interval: %d !\n", interval);
-        queue.forEach(System.out::println);
+        displayRoadStatuses();
         System.out.println("! Press \"Enter\" to open menu !");
+    }
+
+    private static void displayRoadStatuses() {
+        long livedSeconds = Duration.between(startTime, LocalTime.now()).getSeconds();
+        long openRoadIndex = (livedSeconds / interval) % queue.size();
+        for (var i = 0; i < queue.size(); i++) {
+            if (openRoadIndex == i) {
+                System.out.printf(queue.get(i) + " will be \u001B[32m open for %ds.\u001B[0m\n"
+                        , Math.abs((livedSeconds % interval) - interval));
+            } else {
+                System.out.printf(queue.get(i) + " will be \u001B[31m closed for %ds.\u001B[0m\n"
+                        , calculateClosedTime(i, livedSeconds, openRoadIndex, queue.size()));
+            }
+        }
+    }
+
+    private static long calculateClosedTime(int roadIndex, long elapsedTime, long openRoadIndex, int roadsSize) {
+        if (roadIndex > openRoadIndex) {
+            return (roadIndex - openRoadIndex) * interval - (int) (elapsedTime % interval);
+        } else {
+            return (roadsSize - openRoadIndex + roadIndex) * interval - (int) (elapsedTime % interval);
+        }
     }
 
     private static void quit() {
         sc.close();
-        System.out.println("Bye!");
 //        t.stop();
+        System.out.println("Bye!");
         System.exit(0);
     }
 }

@@ -26,10 +26,10 @@ public class TestSealedPatternMatching {
     public static void main(String[] args) {
         Shapes shape = new ColoredSquare("Red");
 
-        String description = switch (shape) {
-            case ColoredSquare cs -> "this is square" + cs.color;
-            case Rectangle r -> "This is Rectangle " + r.height;
-            case Circle c -> "This is Circle " + c.radius;
+        String description = switch (shape.toString()) {
+//            case ColoredSquare cs -> "this is square" + cs.color;
+//            case Rectangle r -> "This is Rectangle " + r.height;
+//            case Circle c -> "This is Circle " + c.radius;
             default -> "Unknown shape";
         };
         System.out.println(description);
